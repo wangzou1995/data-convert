@@ -52,7 +52,7 @@ public class Ext2VueUntil {
 			}
 		}
 		// 判断是否有过滤条件
-		isFilter(result, keys);
+		elementHaveTargetArray(result, keys, "filter");
 		return result;
 	}
 
@@ -126,9 +126,9 @@ public class Ext2VueUntil {
 			}
 		});
 		// 判断是否有过滤字段
-		isFilter(temp, keys);
+		elementHaveTargetArray(temp, keys, "filter");
 		// 判断是否有自定义sql
-		isFilterSql(temp, keys);
+		elementHaveTargetObject(temp, keys, "filterSql");
 	}
 
 	/**
@@ -392,12 +392,10 @@ public class Ext2VueUntil {
 					if (popWinsArray.size() > 0) {
 						popWinsArray.forEach(popWin -> {
 							JSONObject popJsonObject = (JSONObject) popWin;
-							String filterString = popJsonObject.getString("filter");
-							if (filterString != null) {
-								popJsonObject.put("filter", JSONArray.parse(filterString));
-							} else {
-								popJsonObject.put("filter", new JSONArray());
-							}
+							// 判断有没有filter
+							Set<String> popKeySet = popJsonObject.keySet();
+							elementHaveTargetArray(popJsonObject, popKeySet, "filter");
+							elementHaveTargetArray(popJsonObject, popKeySet, "script");							
 						});
 					}
 					break;
@@ -412,25 +410,31 @@ public class Ext2VueUntil {
 		});
 	}
 	/**
-	 * 是否存在过滤器
+	 * 是否存在该节点 如果不存在 初始化节点数组
 	 * @param object
 	 * @param keys
+	 * @targetKey 目标节点
 	 */
-	protected static void  isFilter(JSONObject object, Set<String> keys) {
+	protected static void  elementHaveTargetArray(JSONObject object, Set<String> keys,String targetKey) {
 		// 判断是否有过滤字段
-		if (!keys.contains("filter")) {
-			object.put("filter", new JSONArray());
+		if (!keys.contains(targetKey)) {
+			object.put(targetKey, new JSONArray());
+		} else {
+			object.put(targetKey, JSONArray.parse(object.getString(targetKey)));
 		}
 	}
 	/**
-	 * 是否存在自定义sql
+	 * 是否存在该节点 如果不存在 初始化节点对象
 	 * @param object
 	 * @param keys
+	 * @targetKey 目标节点
 	 */
-	protected static void isFilterSql(JSONObject object, Set<String> keys) {
+	protected static void elementHaveTargetObject(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有自定义sql
-		if (!keys.contains("filtersql")) {
-			object.put("filtersql", new JSONObject());
+		if (!keys.contains(targetKey)) {
+			object.put(targetKey, new JSONObject());
+		} else {
+			object.put(targetKey, JSONObject.parse(object.getString(targetKey)));
 		}
 	}
 }

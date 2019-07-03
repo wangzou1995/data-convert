@@ -19,6 +19,7 @@ import com.alibaba.fastjson.JSONObject;
  */
 public class Ext2VueUntil {
 	private static final ThreadLocal<JSONObject> threadLocal = new ThreadLocal<>();
+
 	/**
 	 * EXT转换VUE
 	 * 
@@ -50,6 +51,8 @@ public class Ext2VueUntil {
 				result.put(string, jsonObject.get(string));
 			}
 		}
+		// 判断是否有过滤条件
+		isFilter(result, keys);
 		return result;
 	}
 
@@ -122,6 +125,10 @@ public class Ext2VueUntil {
 				}
 			}
 		});
+		// 判断是否有过滤字段
+		isFilter(temp, keys);
+		// 判断是否有自定义sql
+		isFilterSql(temp, keys);
 	}
 
 	/**
@@ -145,10 +152,10 @@ public class Ext2VueUntil {
 				for (Object obj : array) {
 					JSONObject elementObj = (JSONObject) obj;
 					int temp = elementObj.getInteger("rowid");
-						if (!rowLocationMap.containsKey(temp)) {
-							jsonArray.add(getRow(containerId));
+					if (!rowLocationMap.containsKey(temp)) {
+						jsonArray.add(getRow(containerId));
 						rowLocationMap.put(temp, jsonArray.size() - 1);
-						}
+					}
 					JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
 					setCol(rowObj.getJSONArray("row"), elementObj);
 				}
@@ -158,6 +165,8 @@ public class Ext2VueUntil {
 					JSONObject elementObj = (JSONObject) obj;
 					elementObj.put("parenttype", "grid");
 					elementObj.put("parentid", containerId);
+					// 处理
+					str2Json(elementObj);
 					jsonArray.add(elementObj);
 				}
 				break;
@@ -198,7 +207,7 @@ public class Ext2VueUntil {
 		JSONArray jsonArray = new JSONArray();
 		JSONObject jObject = new JSONObject();
 		// 字符串处理
-		// str2Json(source);
+		str2Json(source);
 		jsonArray.add(source);
 		jObject.put("col", jsonArray);
 		target.add(jObject);
@@ -346,29 +355,82 @@ public class Ext2VueUntil {
 		JSONArray result = JSONArray.parseArray(list.toString());
 		return result;
 	}
-	protected static void str2Json (JSONObject sObject) {
+
+	protected static void str2Json(JSONObject sObject) {
 		Set<String> keys = sObject.keySet();
 		keys.forEach(k -> {
 			switch (k) {
-			case "tb_window_selectfields":	
+			case "tb_window_selectfields":
 				JSONArray selectFieldArray = sObject.getJSONArray(k);
 				if (selectFieldArray.size() > 0) {
-				JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-				jsonObject.put("datasource", JSONObject.parse(jsonObject.getString("datasource")));
+					JSONObject jsonObject = selectFieldArray.getJSONObject(0);
+					jsonObject.put("datasource", JSONObject.parse(jsonObject.getString("datasource")));
 				}
 				break;
 			case "tb_window_element_action":
-				JSONArray listenerArray = sObject.getJSONArray(k);
-				if (listenerArray.size() > 0) {
-					listenerArray.forEach(json -> {
-						System.out.println(((JSONObject) json).getString("jsscript"));
-					((JSONObject) json).put("jsscript", JSONObject.parse(((JSONObject) json).getString("jsscript")));
-				});
-				}
+				actionStr2Json(sObject.getJSONArray(k));
 				break;
 			default:
 				break;
 			}
 		});
+	}
+
+	/**
+	 * 转换元素action里面的字符串
+	 * 
+	 * @param jsonArray
+	 */
+	private static void actionStr2Json(JSONArray jsonArray) {
+		jsonArray.forEach(object -> {
+			JSONObject jsonObject = (JSONObject) object;
+			Set<String> keys = jsonObject.keySet();
+			keys.forEach(key -> {
+				switch (key) {
+				case "tb_window_element_action_popwin":
+					JSONArray popWinsArray = jsonObject.getJSONArray(key);
+					if (popWinsArray.size() > 0) {
+						popWinsArray.forEach(popWin -> {
+							JSONObject popJsonObject = (JSONObject) popWin;
+							String filterString = popJsonObject.getString("filter");
+							if (filterString != null) {
+								popJsonObject.put("filter", JSONArray.parse(filterString));
+							} else {
+								popJsonObject.put("filter", new JSONArray());
+							}
+						});
+					}
+					break;
+				case "":
+					break;
+
+				default:
+					// throw new IllegalArgumentException("Unexpected value: " + keys.);
+					break;
+				}
+			});
+		});
+	}
+	/**
+	 * 是否存在过滤器
+	 * @param object
+	 * @param keys
+	 */
+	protected static void  isFilter(JSONObject object, Set<String> keys) {
+		// 判断是否有过滤字段
+		if (!keys.contains("filter")) {
+			object.put("filter", new JSONArray());
+		}
+	}
+	/**
+	 * 是否存在自定义sql
+	 * @param object
+	 * @param keys
+	 */
+	protected static void isFilterSql(JSONObject object, Set<String> keys) {
+		// 判断是否有自定义sql
+		if (!keys.contains("filtersql")) {
+			object.put("filtersql", new JSONObject());
+		}
 	}
 }

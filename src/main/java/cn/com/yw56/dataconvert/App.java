@@ -18,7 +18,7 @@ public class App
 {
     public static void main( String[] args ) throws IOException
     {
-    	BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File("/Users/wangzou/Downloads/SecondDetail_data.json"))));
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File("/Users/wangzou1995/Downloads/accountdetail_data.json"))));
 		StringBuffer line = new StringBuffer();
 	    String result = "";
 		while ((result = reader.readLine()) != null) {

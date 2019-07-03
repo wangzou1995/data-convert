@@ -166,7 +166,7 @@ public class Ext2VueUntil {
 					elementObj.put("parenttype", "grid");
 					elementObj.put("parentid", containerId);
 					// 处理
-					str2Json(elementObj);
+					elementStr2Json(elementObj);
 					jsonArray.add(elementObj);
 				}
 				break;
@@ -207,7 +207,7 @@ public class Ext2VueUntil {
 		JSONArray jsonArray = new JSONArray();
 		JSONObject jObject = new JSONObject();
 		// 字符串处理
-		str2Json(source);
+		elementStr2Json(source);
 		jsonArray.add(source);
 		jObject.put("col", jsonArray);
 		target.add(jObject);
@@ -355,8 +355,8 @@ public class Ext2VueUntil {
 		JSONArray result = JSONArray.parseArray(list.toString());
 		return result;
 	}
-
-	protected static void str2Json(JSONObject sObject) {
+	
+	protected static void elementStr2Json(JSONObject sObject) {
 		Set<String> keys = sObject.keySet();
 		keys.forEach(k -> {
 			switch (k) {

@@ -86,9 +86,12 @@ public class Ext2VueUntil {
 			initContainerBasic(sourceObj, containerType, containerId, temp);
 			// 初始化子容器
 			// 查询点在哪里 result
-			JSONObject parent = findParentById(result, sourceObj.getInteger("parentid"));
+//			System.out.println(sourceObj.toString());
+			int parentid = sourceObj.getInteger("parentid");
+			JSONObject parent = parentid == -1 ? null : findParentById(result, parentid);
 			if (parent != null) {
 				if (containerType.equals("toolbar")) {
+//					System.out.println(parent.toString());
 					parent.getJSONArray("tb_tool_element").add(temp);
 				} else {
 					parent.getJSONArray("tb_window_element").add(temp);
@@ -160,18 +163,16 @@ public class Ext2VueUntil {
 					setCol(rowObj.getJSONArray("row"), elementObj);
 				}
 				break;
-			case "grid":
+			default:
 				for (Object obj : array) {
 					JSONObject elementObj = (JSONObject) obj;
-					elementObj.put("parenttype", "grid");
-					elementObj.put("parentid", containerId);
-					// 处理
+					if (containerType.equals("grid")) {
+						elementObj.put("parenttype", containerType);
+						elementObj.put("parentid", containerId);
+					}
 					elementStr2Json(elementObj);
 					jsonArray.add(elementObj);
 				}
-				break;
-			default:
-				jsonArray = array;
 			}
 		} else {
 
@@ -355,25 +356,48 @@ public class Ext2VueUntil {
 		JSONArray result = JSONArray.parseArray(list.toString());
 		return result;
 	}
-	
+
+	/**
+	 * 元素字符串转json
+	 * 
+	 * @param sObject
+	 */
 	protected static void elementStr2Json(JSONObject sObject) {
 		Set<String> keys = sObject.keySet();
 		keys.forEach(k -> {
 			switch (k) {
 			case "tb_window_selectfields":
-				JSONArray selectFieldArray = sObject.getJSONArray(k);
-				if (selectFieldArray.size() > 0) {
-					JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-					jsonObject.put("datasource", JSONObject.parse(jsonObject.getString("datasource")));
-				}
+				baseElementScript(sObject, k, "datasource");
 				break;
 			case "tb_window_element_action":
 				actionStr2Json(sObject.getJSONArray(k));
+				break;
+			case "tb_window_formatsearch":
+				baseElementScript(sObject, k, "script");
+				break;
+			case "visible":
+			case "elementstatus":
+				sObject.put(k, JSONObject.parse(sObject.getString(k)));
 				break;
 			default:
 				break;
 			}
 		});
+	}
+
+	/**
+	 * 元素通用字符串转换JSON
+	 * 
+	 * @param sourceObject
+	 * @param key
+	 * @param elementNode
+	 */
+	protected static void baseElementScript(JSONObject sourceObject, String key, String elementNode) {
+		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
+		if (selectFieldArray.size() > 0) {
+			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
+			jsonObject.put(elementNode, JSONObject.parse(jsonObject.getString(elementNode)));
+		}
 	}
 
 	/**
@@ -388,34 +412,51 @@ public class Ext2VueUntil {
 			keys.forEach(key -> {
 				switch (key) {
 				case "tb_window_element_action_popwin":
-					JSONArray popWinsArray = jsonObject.getJSONArray(key);
-					if (popWinsArray.size() > 0) {
-						popWinsArray.forEach(popWin -> {
-							JSONObject popJsonObject = (JSONObject) popWin;
-							// 判断有没有filter
-							Set<String> popKeySet = popJsonObject.keySet();
-							elementHaveTargetArray(popJsonObject, popKeySet, "filter");
-							elementHaveTargetArray(popJsonObject, popKeySet, "script");							
-						});
-					}
+				case "tb_window_element_action_service":
+				case "tb_window_element_action_exesql":
+					baseAction2JsonScript(jsonObject, key);
 					break;
-				case "":
-					break;
-
 				default:
-					// throw new IllegalArgumentException("Unexpected value: " + keys.);
 					break;
 				}
 			});
 		});
 	}
+
+	private static void baseAction2JsonScript(JSONObject object, String key) {
+		JSONArray array = object.getJSONArray(key);
+		if (array.size() > 0) {
+			array.forEach(element -> {
+				JSONObject popJsonObject = (JSONObject) element;
+				// 判断有没有filter
+				Set<String> popKeySet = popJsonObject.keySet();
+				switch (key) {
+				case "tb_window_element_action_popwin":
+					elementHaveTargetArray(popJsonObject, popKeySet, "filter");
+					elementHaveTargetArray(popJsonObject, popKeySet, "script");
+					break;
+				case "tb_window_element_action_service":
+					elementHaveTargetArray(popJsonObject, popKeySet, "script");
+					break;
+				case "tb_window_element_action_exesql":
+					elementHaveTargetArray(popJsonObject, popKeySet, "switchfilter");
+					elementHaveTargetArray(popJsonObject, popKeySet, "customevent");
+					break;
+				default:
+					break;
+				}
+			});
+		}
+	}
+
 	/**
 	 * 是否存在该节点 如果不存在 初始化节点数组
+	 * 
 	 * @param object
 	 * @param keys
 	 * @targetKey 目标节点
 	 */
-	protected static void  elementHaveTargetArray(JSONObject object, Set<String> keys,String targetKey) {
+	protected static void elementHaveTargetArray(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有过滤字段
 		if (!keys.contains(targetKey)) {
 			object.put(targetKey, new JSONArray());
@@ -423,8 +464,10 @@ public class Ext2VueUntil {
 			object.put(targetKey, JSONArray.parse(object.getString(targetKey)));
 		}
 	}
+
 	/**
 	 * 是否存在该节点 如果不存在 初始化节点对象
+	 * 
 	 * @param object
 	 * @param keys
 	 * @targetKey 目标节点

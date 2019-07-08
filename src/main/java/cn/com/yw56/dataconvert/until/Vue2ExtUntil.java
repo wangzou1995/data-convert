@@ -1,5 +1,6 @@
 package cn.com.yw56.dataconvert.until;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import com.alibaba.fastjson.JSONArray;
@@ -24,12 +25,27 @@ public class Vue2ExtUntil {
 				window.put(key, initLayout(sourceObject.getJSONArray(key)));
 			}
 		});
+		// 窗口节点需要JSON转换成字符串
+		String[] tempStrings = { "filter" };
+		exchangeJSON2String(tempStrings, sourceObject);
 		// 添加tb_window节点
 		JSONArray jsonArray = new JSONArray();
 		jsonArray.add(window);
 		JSONObject resultObj = new JSONObject();
 		resultObj.put("tb_window", jsonArray);
 		return resultObj;
+	}
+
+	/**
+	 * JSO转换字符串
+	 * 
+	 * @param string
+	 * @param object
+	 */
+	private static void exchangeJSON2String(String[] strings, JSONObject object) {
+		for (int i = 0; i < strings.length; i++) {
+			object.put(strings[i], object.get(strings[i]).toString());
+		}
 	}
 
 	/**
@@ -83,6 +99,9 @@ public class Vue2ExtUntil {
 			object.remove("name");
 			object.remove("type");
 			object.remove("icon");
+			// JSON转换 字符串
+			String[] temp = { "filter", "filtersql" };
+			exchangeJSON2String(temp, object);
 			JSONArray array = object.getJSONArray("tb_window_element");
 			if (array.size() > 0) {
 				elementRemoveNode(array);
@@ -98,9 +117,28 @@ public class Vue2ExtUntil {
 	 * @param array
 	 */
 	private static void elementRemoveNode(JSONArray array) {
+		String[] temps = { "visible", "elementstatus" };
 		array.forEach(obj -> {
 			JSONObject object = (JSONObject) obj;
 			object.remove("icon");
+			exchangeJSON2String(temps, object);
+			Set<String> keys = new HashSet<>();
+			keys.forEach(key -> {
+				switch (key) {
+				case "tb_window_formatsearch":
+					baseElementScript(object, key, "script");
+					break;
+				case "tb_window_element_action":
+					actionJSON2Str(object.getJSONArray(key));
+					break;
+				case "tb_window_selectfields":
+					baseElementScript(object, key, "datasource");
+					break;
+				default:
+					break;
+				}
+			});
+
 		});
 	}
 
@@ -123,5 +161,69 @@ public class Vue2ExtUntil {
 			});
 		}
 		return resultArray;
+	}
+
+	/**
+	 * 元素通用字符串转换JSON
+	 * 
+	 * @param sourceObject
+	 * @param key
+	 * @param elementNode
+	 */
+	protected static void baseElementScript(JSONObject sourceObject, String key, String elementNode) {
+		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
+		if (selectFieldArray.size() > 0) {
+			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
+			jsonObject.put(elementNode, (jsonObject.getString(elementNode)).toString());
+		}
+	}
+
+	/**
+	 * 转换元素action里面的字符串
+	 * 
+	 * @param jsonArray
+	 */
+	private static void actionJSON2Str(JSONArray jsonArray) {
+		jsonArray.forEach(object -> {
+			JSONObject jsonObject = (JSONObject) object;
+			Set<String> keys = jsonObject.keySet();
+			keys.forEach(key -> {
+				switch (key) {
+				case "tb_window_element_action_popwin":
+				case "tb_window_element_action_service":
+				case "tb_window_element_action_exesql":
+					baseAction2JsonScript(jsonObject, key);
+					break;
+				default:
+					break;
+				}
+			});
+		});
+	}
+
+	private static void baseAction2JsonScript(JSONObject object, String key) {
+		JSONArray array = object.getJSONArray(key);
+		if (array.size() > 0) {
+			array.forEach(element -> {
+				JSONObject popJsonObject = (JSONObject) element;
+				// 判断有没有filter
+				// Set<String> popKeySet = popJsonObject.keySet();
+				switch (key) {
+				case "tb_window_element_action_popwin":
+					baseElementScript(popJsonObject, key, "filter");
+					baseElementScript(popJsonObject, key, "script");
+					break;
+				case "tb_window_element_action_service":
+					baseElementScript(popJsonObject, key, "script");
+					break;
+				case "tb_window_element_action_exesql":
+					baseElementScript(popJsonObject, key, "switchfilter");
+					baseElementScript(popJsonObject, key, "customevent");
+					break;
+				default:
+					break;
+				}
+			});
+		}
 	}
 }

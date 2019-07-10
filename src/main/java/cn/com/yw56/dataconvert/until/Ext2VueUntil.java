@@ -73,9 +73,12 @@ public class Ext2VueUntil {
 			// 获取容器类型
 			String containerType = sourceObj.getString("containertype");
 			if (containerType.equals("grid")) {
-				temp.put("tb_tool_element", new JSONArray());
-				temp.put("isShowTool", true);
-				temp.put("toolPosition", "bottom");
+				// 只要不是末及 就有工具栏
+				if (!sourceObj.getBooleanValue("leaf")) {
+					temp.put("tb_tool_element", new JSONArray());
+					temp.put("isShowTool", true);
+					temp.put("toolPosition", "bottom");
+				}
 			}
 			// 获取容器id
 			int containerId = sourceObj.getIntValue("id");
@@ -89,12 +92,16 @@ public class Ext2VueUntil {
 //			System.out.println(sourceObj.toString());
 			int parentid = sourceObj.getInteger("parentid");
 			JSONObject parent = parentid == -1 ? null : findParentById(result, parentid);
+
 			if (parent != null) {
-				if (containerType.equals("toolbar")) {
-//					System.out.println(parent.toString());
+				String parentContainerTypeString = parent.getString("containertype");
+				if ("grid".equals(parentContainerTypeString)) {
 					parent.getJSONArray("tb_tool_element").add(temp);
+					// 排序
+
 				} else {
 					parent.getJSONArray("tb_window_element").add(temp);
+					parent.put("tb_window_element", resetSort(parent.getJSONArray("tb_window_element"), "containers"));
 				}
 			} else {
 				result.add(temp);
@@ -303,8 +310,10 @@ public class Ext2VueUntil {
 		Collections.sort(list, new Comparator<JSONObject>() {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
-				int a = o1.getInteger(type == "container" ? "orderid" : type == "row" ? "rowid" : "columnid");
-				int b = o2.getInteger(type == "container" ? "orderid" : type == "row" ? "rowid" : "columnid");
+				int a = o1.getInteger(
+						type == "container" || type == "containers" ? "orderid" : type == "row" ? "rowid" : "columnid");
+				int b = o2.getInteger(
+						type == "container" || type == "containers" ? "orderid" : type == "row" ? "rowid" : "columnid");
 				if (a > b) {
 					return 1;
 				} else if (a == b) {
@@ -343,8 +352,8 @@ public class Ext2VueUntil {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
 				// TODO Auto-generated method stub
-				int a = o1.getString("containertype").equals("toolbar") ? 1 : 0;
-				int b = o2.getString("containertype").equals("toolbar") ? 1 : 0;
+				int a = "toolbar".equals(o1.getString("containertype")) ? 1 : 0;
+				int b = "toolbar".equals(o2.getString("containertype")) ? 1 : 0;
 				if (a > b) {
 					return 1;
 				} else if (a == b) {
@@ -420,6 +429,7 @@ public class Ext2VueUntil {
 					break;
 				}
 			});
+			elementHaveTargetArray(jsonObject, keys, "filter");
 		});
 	}
 

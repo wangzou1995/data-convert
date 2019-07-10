@@ -1,6 +1,5 @@
 package cn.com.yw56.dataconvert.until;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import com.alibaba.fastjson.JSONArray;
@@ -44,7 +43,10 @@ public class Vue2ExtUntil {
 	 */
 	private static void exchangeJSON2String(String[] strings, JSONObject object) {
 		for (int i = 0; i < strings.length; i++) {
-			object.put(strings[i], object.get(strings[i]).toString());
+			Object o = object.get(strings[i]);
+			if (o != null) {
+				object.put(strings[i], object.get(strings[i]).toString());
+			}
 		}
 	}
 
@@ -122,7 +124,7 @@ public class Vue2ExtUntil {
 			JSONObject object = (JSONObject) obj;
 			object.remove("icon");
 			exchangeJSON2String(temps, object);
-			Set<String> keys = new HashSet<>();
+			Set<String> keys = object.keySet();
 			keys.forEach(key -> {
 				switch (key) {
 				case "tb_window_formatsearch":
@@ -172,9 +174,10 @@ public class Vue2ExtUntil {
 	 */
 	protected static void baseElementScript(JSONObject sourceObject, String key, String elementNode) {
 		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
-		if (selectFieldArray.size() > 0) {
+		if (selectFieldArray != null && selectFieldArray.size() > 0) {
 			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-			jsonObject.put(elementNode, (jsonObject.getString(elementNode)).toString());
+			System.out.println((jsonObject.get(elementNode)).toString());
+			jsonObject.put(elementNode, (jsonObject.get(elementNode)).toString());
 		}
 	}
 
@@ -210,15 +213,17 @@ public class Vue2ExtUntil {
 				// Set<String> popKeySet = popJsonObject.keySet();
 				switch (key) {
 				case "tb_window_element_action_popwin":
-					baseElementScript(popJsonObject, key, "filter");
-					baseElementScript(popJsonObject, key, "script");
+					String [] popwins = { "filter", "script" };
+					exchangeJSON2String(popwins,popJsonObject);
+					
 					break;
 				case "tb_window_element_action_service":
-					baseElementScript(popJsonObject, key, "script");
+					String [] services = { "urltitle", "script" , "switchfilter", "urlparams", "headers"};
+					exchangeJSON2String(services,popJsonObject);
 					break;
 				case "tb_window_element_action_exesql":
-					baseElementScript(popJsonObject, key, "switchfilter");
-					baseElementScript(popJsonObject, key, "customevent");
+					String [] exesqls = { "switchfilter", "customevent" };
+					exchangeJSON2String(exesqls,popJsonObject);
 					break;
 				default:
 					break;

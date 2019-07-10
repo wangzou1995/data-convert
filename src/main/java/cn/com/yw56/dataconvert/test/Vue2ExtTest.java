@@ -26,7 +26,7 @@ public class Vue2ExtTest {
     	JSONObject jObject = JSONObject.parseObject(line.toString());
     	JSONObject jsonObject = Vue2ExtUntil.vue2ExtData(jObject);
     	BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/test_ext4.json"))));
+    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/test_ext.json"))));
     	writer.write(jsonObject.toString());
     	writer.flush();
     	writer.close();

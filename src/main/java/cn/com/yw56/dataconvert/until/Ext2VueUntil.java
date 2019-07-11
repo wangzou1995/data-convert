@@ -159,15 +159,23 @@ public class Ext2VueUntil {
 			case "searchform":
 			case "form":
 				// 获取元素
-				for (Object obj : array) {
-					JSONObject elementObj = (JSONObject) obj;
+		
+				for (int i = 0; i < array.size(); i++) {
+
+					JSONObject elementObj = (JSONObject) array.getJSONObject(i);
 					int temp = elementObj.getInteger("rowid");
+					
 					if (!rowLocationMap.containsKey(temp)) {
 						jsonArray.add(getRow(containerId));
+					
+				
 						rowLocationMap.put(temp, jsonArray.size() - 1);
 					}
 					JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
+					
 					setCol(rowObj.getJSONArray("row"), elementObj);
+
+				
 				}
 				break;
 			default:
@@ -216,6 +224,7 @@ public class Ext2VueUntil {
 		JSONObject jObject = new JSONObject();
 		// 字符串处理
 		elementStr2Json(source);
+		source.put("columnid", target.size());
 		jsonArray.add(source);
 		jObject.put("col", jsonArray);
 		target.add(jObject);
@@ -447,6 +456,7 @@ public class Ext2VueUntil {
 					break;
 				case "tb_window_element_action_service":
 					elementHaveTargetArray(popJsonObject, popKeySet, "script");
+					elementHaveTargetArray(popJsonObject, popKeySet, "switchfilter");
 					break;
 				case "tb_window_element_action_exesql":
 					elementHaveTargetArray(popJsonObject, popKeySet, "switchfilter");
@@ -468,7 +478,7 @@ public class Ext2VueUntil {
 	 */
 	protected static void elementHaveTargetArray(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有过滤字段
-		if (!keys.contains(targetKey)) {
+		if (!keys.contains(targetKey) && object.getString(targetKey) == null) {
 			object.put(targetKey, new JSONArray());
 		} else {
 			object.put(targetKey, JSONArray.parse(object.getString(targetKey)));
@@ -484,7 +494,7 @@ public class Ext2VueUntil {
 	 */
 	protected static void elementHaveTargetObject(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有自定义sql
-		if (!keys.contains(targetKey)) {
+		if (!keys.contains(targetKey) && object.getString(targetKey) == null) {
 			object.put(targetKey, new JSONObject());
 		} else {
 			object.put(targetKey, JSONObject.parse(object.getString(targetKey)));

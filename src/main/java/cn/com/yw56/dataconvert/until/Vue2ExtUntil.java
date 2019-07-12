@@ -63,7 +63,7 @@ public class Vue2ExtUntil {
 			String containerType = object.getString("type");
 			switch (containerType) {
 			case "form":
-			case "searchfrom":
+			case "searchform":
 				object.put("tb_window_element", deleteRowContainer(object.getJSONArray("tb_window_element")));
 				// 设置是否末级
 				object.put("leaf", true);
@@ -71,7 +71,7 @@ public class Vue2ExtUntil {
 			case "grid":
 				// 取出工具容器
 				JSONArray tools = object.getJSONArray("tb_tool_element");
-				if (tools.size() > 0) {
+				if (tools != null && tools.size() > 0) {
 					resultArray.add(tools.get(0));
 					object.put("leaf", false);
 				} else {
@@ -85,6 +85,7 @@ public class Vue2ExtUntil {
 			case "tabpanel":
 			case "panel":
 			case "container":
+			case "cardpanel":
 				JSONArray lays = object.getJSONArray("tb_window_element");
 
 				if (lays.size() > 0) {
@@ -106,6 +107,7 @@ public class Vue2ExtUntil {
 			exchangeJSON2String(temp, object);
 			JSONArray array = object.getJSONArray("tb_window_element");
 			if (array.size() > 0) {
+
 				elementRemoveNode(array);
 			}
 			resultArray.add(object);
@@ -176,7 +178,6 @@ public class Vue2ExtUntil {
 		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
 		if (selectFieldArray != null && selectFieldArray.size() > 0) {
 			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-			System.out.println((jsonObject.get(elementNode)).toString());
 			jsonObject.put(elementNode, (jsonObject.get(elementNode)).toString());
 		}
 	}
@@ -195,6 +196,8 @@ public class Vue2ExtUntil {
 				case "tb_window_element_action_popwin":
 				case "tb_window_element_action_service":
 				case "tb_window_element_action_exesql":
+				case "tb_window_element_action_js":
+				case "tb_window_element_listener":
 					baseAction2JsonScript(jsonObject, key);
 					break;
 				default:
@@ -213,17 +216,29 @@ public class Vue2ExtUntil {
 				// Set<String> popKeySet = popJsonObject.keySet();
 				switch (key) {
 				case "tb_window_element_action_popwin":
-					String [] popwins = { "filter", "script" };
-					exchangeJSON2String(popwins,popJsonObject);
-					
+					String[] popwins = { "filter", "script" };
+					exchangeJSON2String(popwins, popJsonObject);
+
 					break;
 				case "tb_window_element_action_service":
-					String [] services = { "urltitle", "script" , "switchfilter", "urlparams", "headers"};
-					exchangeJSON2String(services,popJsonObject);
+					String[] services = { "urltitle", "script", "switchfilter", "urlparams", "headers" };
+					exchangeJSON2String(services, popJsonObject);
 					break;
 				case "tb_window_element_action_exesql":
-					String [] exesqls = { "switchfilter", "customevent" };
-					exchangeJSON2String(exesqls,popJsonObject);
+					String[] exesqls = { "switchfilter", "customevent" };
+					exchangeJSON2String(exesqls, popJsonObject);
+					break;
+				case "tb_window_element_action_js":
+					JSONArray jss = popJsonObject.getJSONArray("customevent");
+					if (jss != null && jss.size() > 0) {
+						popJsonObject.put("customevent", jss.getJSONObject(0).getString("js"));
+					}
+					break;
+				case "tb_window_element_listener":
+					JSONArray listeners = popJsonObject.getJSONArray("jsscript");
+					if (listeners != null && listeners.size() > 0) {
+						popJsonObject.put("jsscript", listeners.getJSONObject(0).getString("js"));
+					}
 					break;
 				default:
 					break;

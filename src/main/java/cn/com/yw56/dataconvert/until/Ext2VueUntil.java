@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 
 /**
@@ -159,23 +160,21 @@ public class Ext2VueUntil {
 			case "searchform":
 			case "form":
 				// 获取元素
-		
+
 				for (int i = 0; i < array.size(); i++) {
 
 					JSONObject elementObj = (JSONObject) array.getJSONObject(i);
 					int temp = elementObj.getInteger("rowid");
-					
+
 					if (!rowLocationMap.containsKey(temp)) {
 						jsonArray.add(getRow(containerId));
-					
-				
+
 						rowLocationMap.put(temp, jsonArray.size() - 1);
 					}
 					JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
-					
+
 					setCol(rowObj.getJSONArray("row"), elementObj);
 
-				
 				}
 				break;
 			default:
@@ -432,6 +431,8 @@ public class Ext2VueUntil {
 				case "tb_window_element_action_popwin":
 				case "tb_window_element_action_service":
 				case "tb_window_element_action_exesql":
+				case "tb_window_element_action_js":
+				case "tb_window_element_listener":
 					baseAction2JsonScript(jsonObject, key);
 					break;
 				default:
@@ -449,6 +450,7 @@ public class Ext2VueUntil {
 				JSONObject popJsonObject = (JSONObject) element;
 				// 判断有没有filter
 				Set<String> popKeySet = popJsonObject.keySet();
+
 				switch (key) {
 				case "tb_window_element_action_popwin":
 					elementHaveTargetArray(popJsonObject, popKeySet, "filter");
@@ -461,6 +463,12 @@ public class Ext2VueUntil {
 				case "tb_window_element_action_exesql":
 					elementHaveTargetArray(popJsonObject, popKeySet, "switchfilter");
 					elementHaveTargetArray(popJsonObject, popKeySet, "customevent");
+					break;
+				case "tb_window_element_action_js":
+					elementHaveTargetArray(popJsonObject, popKeySet, "customevent");
+					break;
+				case "tb_window_element_listener":
+					elementHaveTargetArray(popJsonObject, popKeySet, "jsscript");
 					break;
 				default:
 					break;
@@ -478,10 +486,23 @@ public class Ext2VueUntil {
 	 */
 	protected static void elementHaveTargetArray(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有过滤字段
-		if (!keys.contains(targetKey) && object.getString(targetKey) == null) {
+		if (!keys.contains(targetKey)) {
 			object.put(targetKey, new JSONArray());
 		} else {
-			object.put(targetKey, JSONArray.parse(object.getString(targetKey)));
+			String tempString = object.getString(targetKey);
+			try {
+				JSONArray array = JSONArray.parseArray(tempString);
+				object.put(targetKey, object.getString(targetKey) == null ? new JSONArray() : array);
+			} catch (JSONException e) {
+				System.out.println(tempString);
+				JSONArray array = new JSONArray();
+				JSONObject createJson = new JSONObject();
+				createJson.put("type", "js");
+				createJson.put("js", tempString);
+				array.add(createJson);
+				object.put(targetKey, array);
+			}
+
 		}
 	}
 
@@ -494,10 +515,11 @@ public class Ext2VueUntil {
 	 */
 	protected static void elementHaveTargetObject(JSONObject object, Set<String> keys, String targetKey) {
 		// 判断是否有自定义sql
-		if (!keys.contains(targetKey) && object.getString(targetKey) == null) {
+		if (!keys.contains(targetKey)) {
 			object.put(targetKey, new JSONObject());
 		} else {
-			object.put(targetKey, JSONObject.parse(object.getString(targetKey)));
+			object.put(targetKey, object.getString(targetKey) == null ? new JSONObject()
+					: JSONObject.parse(object.getString(targetKey)));
 		}
 	}
 }

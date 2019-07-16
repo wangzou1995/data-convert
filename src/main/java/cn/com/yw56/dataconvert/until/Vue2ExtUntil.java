@@ -125,6 +125,7 @@ public class Vue2ExtUntil {
 		array.forEach(obj -> {
 			JSONObject object = (JSONObject) obj;
 			object.remove("icon");
+			object.remove("name");
 			exchangeJSON2String(temps, object);
 			Set<String> keys = object.keySet();
 			keys.forEach(key -> {
@@ -137,6 +138,10 @@ public class Vue2ExtUntil {
 					break;
 				case "tb_window_selectfields":
 					baseElementScript(object, key, "datasource");
+					break;
+				case "tb_window_inputfields":
+					baseElementScript(object, key, "switchfilter");
+					baseElementScript(object, key, "filter");
 					break;
 				default:
 					break;
@@ -229,15 +234,15 @@ public class Vue2ExtUntil {
 					exchangeJSON2String(exesqls, popJsonObject);
 					break;
 				case "tb_window_element_action_js":
-					JSONArray jss = popJsonObject.getJSONArray("customevent");
-					if (jss != null && jss.size() > 0) {
-						popJsonObject.put("customevent", jss.getJSONObject(0).getString("js"));
+					JSONObject jss = popJsonObject.getJSONObject("customevent");
+					if (jss != null) {
+						popJsonObject.put("customevent", jss.getString("js"));
 					}
 					break;
 				case "tb_window_element_listener":
-					JSONArray listeners = popJsonObject.getJSONArray("jsscript");
+					JSONObject listeners = popJsonObject.getJSONObject("jsscript");
 					if (listeners != null && listeners.size() > 0) {
-						popJsonObject.put("jsscript", listeners.getJSONObject(0).getString("js"));
+						popJsonObject.put("jsscript", listeners.getString("js"));
 					}
 					break;
 				default:

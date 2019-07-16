@@ -16,7 +16,7 @@ import cn.com.yw56.dataconvert.until.Vue2ExtUntil;
 public class Vue2ExtTest {
 	public static void main(String[] args) throws IOException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(
-    			new FileInputStream(new File("/Users/wangzou1995/Downloads/auditwindow_mobile_data_vue.json"))));
+    			new FileInputStream(new File("/Users/wangzou1995/Downloads/test.json"))));
 		StringBuffer line = new StringBuffer();
 	    String result = "";
 		while ((result = reader.readLine()) != null) {
@@ -26,7 +26,7 @@ public class Vue2ExtTest {
     	JSONObject jObject = JSONObject.parseObject(line.toString());
     	JSONObject jsonObject = Vue2ExtUntil.vue2ExtData(jObject);
     	BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/auditwindow_mobile_data_ext.json"))));
+    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/test_ext.json"))));
     	writer.write(jsonObject.toString());
     	writer.flush();
     	writer.close();

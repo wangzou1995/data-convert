@@ -392,6 +392,16 @@ public class Ext2VueUntil {
 			case "tb_window_formatsearch":
 				baseElementScript(sObject, k, "script");
 				break;
+			case "tb_window_inputfields":
+				JSONArray inpitsArray = sObject.getJSONArray(k);
+				baseElementScript(sObject, k, "filter");
+				if (inpitsArray != null && inpitsArray.size() > 0) {
+					inpitsArray.forEach(obj -> {
+						JSONObject inputObject = (JSONObject) obj;
+						elementHaveTargetObject(inputObject, inputObject.keySet(), "switchfilter");
+					});
+				}	
+				break;
 			case "visible":
 			case "elementstatus":
 				sObject.put(k, JSONObject.parse(sObject.getString(k)));
@@ -411,9 +421,12 @@ public class Ext2VueUntil {
 	 */
 	protected static void baseElementScript(JSONObject sourceObject, String key, String elementNode) {
 		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
-		if (selectFieldArray.size() > 0) {
-			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-			jsonObject.put(elementNode, JSONObject.parse(jsonObject.getString(elementNode)));
+		if (selectFieldArray != null && selectFieldArray.size() > 0) {
+			selectFieldArray.forEach(obj -> {
+				JSONObject jsonObject = (JSONObject) obj;
+				jsonObject.put(elementNode, JSONObject.parse(jsonObject.getString(elementNode)));
+			});
+			
 		}
 	}
 
@@ -465,10 +478,10 @@ public class Ext2VueUntil {
 					elementHaveTargetArray(popJsonObject, popKeySet, "customevent");
 					break;
 				case "tb_window_element_action_js":
-					elementHaveTargetArray(popJsonObject, popKeySet, "customevent");
+					elementHaveTargetObject(popJsonObject, popKeySet, "customevent");
 					break;
 				case "tb_window_element_listener":
-					elementHaveTargetArray(popJsonObject, popKeySet, "jsscript");
+					elementHaveTargetObject(popJsonObject, popKeySet, "jsscript");
 					break;
 				default:
 					break;
@@ -494,7 +507,6 @@ public class Ext2VueUntil {
 				JSONArray array = JSONArray.parseArray(tempString);
 				object.put(targetKey, object.getString(targetKey) == null ? new JSONArray() : array);
 			} catch (JSONException e) {
-				System.out.println(tempString);
 				JSONArray array = new JSONArray();
 				JSONObject createJson = new JSONObject();
 				createJson.put("type", "js");
@@ -518,8 +530,18 @@ public class Ext2VueUntil {
 		if (!keys.contains(targetKey)) {
 			object.put(targetKey, new JSONObject());
 		} else {
-			object.put(targetKey, object.getString(targetKey) == null ? new JSONObject()
-					: JSONObject.parse(object.getString(targetKey)));
+			
+			String tempString = object.getString(targetKey);
+			try {
+				JSONObject tempObj = JSONObject.parseObject(tempString);
+				object.put(targetKey, tempObj == null ? new JSONObject() : tempObj);
+			} catch (JSONException e) {
+		
+				JSONObject createJson = new JSONObject();
+				createJson.put("type", "js");
+				createJson.put("js", tempString);
+				object.put(targetKey, createJson);
+			}
 		}
 	}
 }

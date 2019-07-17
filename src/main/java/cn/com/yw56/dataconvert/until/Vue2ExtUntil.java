@@ -11,7 +11,6 @@ public class Vue2ExtUntil {
 	 * vue数据转换ext数据
 	 * 
 	 * @param source
-	 * @return
 	 */
 	public static JSONObject vue2ExtData(JSONObject source) {
 		JSONObject window = new JSONObject();
@@ -26,7 +25,7 @@ public class Vue2ExtUntil {
 		});
 		// 窗口节点需要JSON转换成字符串
 		String[] tempStrings = { "filter" };
-		exchangeJSON2String(tempStrings, sourceObject);
+		exchangeJSON2String(tempStrings, window);
 		// 添加tb_window节点
 		JSONArray jsonArray = new JSONArray();
 		jsonArray.add(window);
@@ -44,8 +43,10 @@ public class Vue2ExtUntil {
 	private static void exchangeJSON2String(String[] strings, JSONObject object) {
 		for (int i = 0; i < strings.length; i++) {
 			Object o = object.get(strings[i]);
-			if (o != null) {
-				object.put(strings[i], object.get(strings[i]).toString());
+			if (o != null && "[]".equals(o.toString())) {
+				object.put(strings[i], o.toString());
+			} else {
+				object.put(strings[i], null);
 			}
 		}
 	}
@@ -184,6 +185,8 @@ public class Vue2ExtUntil {
 		if (selectFieldArray != null && selectFieldArray.size() > 0) {
 			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
 			jsonObject.put(elementNode, (jsonObject.get(elementNode)).toString());
+		} else {
+			sourceObject.put(key, null);
 		}
 	}
 

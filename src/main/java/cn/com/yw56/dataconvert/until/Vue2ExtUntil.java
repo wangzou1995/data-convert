@@ -31,6 +31,7 @@ public class Vue2ExtUntil {
 		jsonArray.add(window);
 		JSONObject resultObj = new JSONObject();
 		resultObj.put("tb_window", jsonArray);
+		resultObj.put("removeObjs", source.getJSONArray("removeObjs"));
 		return resultObj;
 	}
 
@@ -43,7 +44,7 @@ public class Vue2ExtUntil {
 	private static void exchangeJSON2String(String[] strings, JSONObject object) {
 		for (int i = 0; i < strings.length; i++) {
 			Object o = object.get(strings[i]);
-			if (o != null && "[]".equals(o.toString())) {
+			if (o != null && !"[]".equals(o.toString())) {
 				object.put(strings[i], o.toString());
 			} else {
 				object.put(strings[i], null);
@@ -73,7 +74,18 @@ public class Vue2ExtUntil {
 				// 取出工具容器
 				JSONArray tools = object.getJSONArray("tb_tool_element");
 				if (tools != null && tools.size() > 0) {
-					resultArray.add(tools.get(0));
+					JSONObject tool = tools.getJSONObject(0);
+					tool.remove("name");
+					tool.remove("type");
+					tool.remove("icon");
+					//删除里面的
+					JSONArray toolElementsArray = tool.getJSONArray("tb_window_element");
+					for(int i = 0 , max = toolElementsArray.size(); i < max; i++) {
+						JSONObject toolElement = toolElementsArray.getJSONObject(i);
+						toolElement.remove("icon");
+						toolElement.remove("name");
+					}
+					resultArray.add(tool);
 					object.put("leaf", false);
 				} else {
 					object.put("leaf", true);
@@ -108,7 +120,6 @@ public class Vue2ExtUntil {
 			exchangeJSON2String(temp, object);
 			JSONArray array = object.getJSONArray("tb_window_element");
 			if (array.size() > 0) {
-
 				elementRemoveNode(array);
 			}
 			resultArray.add(object);
@@ -127,6 +138,10 @@ public class Vue2ExtUntil {
 			JSONObject object = (JSONObject) obj;
 			object.remove("icon");
 			object.remove("name");
+			// 表格元素删除
+			object.remove("parentid");
+			object.remove("parenttype");
+			
 			exchangeJSON2String(temps, object);
 			Set<String> keys = object.keySet();
 			keys.forEach(key -> {
@@ -184,9 +199,11 @@ public class Vue2ExtUntil {
 		JSONArray selectFieldArray = sourceObject.getJSONArray(key);
 		if (selectFieldArray != null && selectFieldArray.size() > 0) {
 			JSONObject jsonObject = selectFieldArray.getJSONObject(0);
-			jsonObject.put(elementNode, (jsonObject.get(elementNode)).toString());
-		} else {
-			sourceObject.put(key, null);
+			if (jsonObject != null && !"[]".equals(jsonObject.toString())) {
+				jsonObject.put(elementNode, (jsonObject.get(elementNode)).toString());
+			} else {
+				jsonObject.put(elementNode, null);
+			}
 		}
 	}
 

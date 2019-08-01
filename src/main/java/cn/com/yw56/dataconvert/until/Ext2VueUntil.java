@@ -47,7 +47,8 @@ public class Ext2VueUntil {
 		Set<String> keys = jsonObject.keySet();
 		for (String string : keys) {
 			if ("tb_window_layout".equals(string)) {
-				result.put(string, initContainerLaout(resetSort(jsonObject.getJSONArray(string), "container")));
+				result.put(string, initContainerLaout(
+						resetSort(jsonObject.getJSONArray(string), "container")));
 			} else {
 				result.put(string, jsonObject.get(string));
 			}
@@ -74,12 +75,10 @@ public class Ext2VueUntil {
 			// 获取容器类型
 			String containerType = sourceObj.getString("containertype");
 			if (containerType.equals("grid")) {
-				// 只要不是末及 就有工具栏
-				if (!sourceObj.getBooleanValue("leaf")) {
-					temp.put("tb_tool_element", new JSONArray());
-					temp.put("isShowTool", true);
-					temp.put("toolPosition", "bottom");
-				}
+				// 只要不是末及 就有工具栏			
+				temp.put("isShowTool", !sourceObj.getBooleanValue("leaf"));
+				temp.put("tb_tool_element", new JSONArray());
+				temp.put("toolPosition", "bottom");
 			}
 			// 获取容器id
 			int containerId = sourceObj.getIntValue("id");
@@ -356,20 +355,20 @@ public class Ext2VueUntil {
 			}
 		});
 		// 将toolbar 放置最后
-		Collections.sort(list, new Comparator<JSONObject>() {
-			@Override
-			public int compare(JSONObject o1, JSONObject o2) {
-				// TODO Auto-generated method stub
-				int a = "toolbar".equals(o1.getString("containertype")) ? 1 : 0;
-				int b = "toolbar".equals(o2.getString("containertype")) ? 1 : 0;
-				if (a > b) {
-					return 1;
-				} else if (a == b) {
-					return 0;
-				} else
-					return -1;
-			}
-		});
+//		Collections.sort(list, new Comparator<JSONObject>() {
+//			@Override
+//			public int compare(JSONObject o1, JSONObject o2) {
+//				// TODO Auto-generated method stub
+//				int a = "toolbar".equals(o1.getString("containertype")) ? 1 : 0;
+//				int b = "toolbar".equals(o2.getString("containertype")) ? 1 : 0;
+//				if (a > b) {
+//					return 1;
+//				} else if (a == b) {
+//					return 0;
+//				} else
+//					return -1;
+//			}
+//		});
 		JSONArray result = JSONArray.parseArray(list.toString());
 		return result;
 	}
@@ -438,7 +437,11 @@ public class Ext2VueUntil {
 	private static void actionStr2Json(JSONArray jsonArray) {
 		jsonArray.forEach(object -> {
 			JSONObject jsonObject = (JSONObject) object;
+			// 判断是否有export事件
 			Set<String> keys = jsonObject.keySet();
+			if (!keys.contains("tb_window_element_action_export")) {
+			jsonObject.put("tb_window_element_action_export", new JSONArray());	
+			}
 			keys.forEach(key -> {
 				switch (key) {
 				case "tb_window_element_action_popwin":
@@ -446,6 +449,11 @@ public class Ext2VueUntil {
 				case "tb_window_element_action_exesql":
 				case "tb_window_element_action_js":
 				case "tb_window_element_listener":
+				case "tb_window_element_action_export":
+				case "tb_window_element_action_import":
+				case "tb_window_element_action_updownload":
+				case "tb_window_element_action_save":
+				case "tb_window_element_action_cuobj":
 					baseAction2JsonScript(jsonObject, key);
 					break;
 				default:

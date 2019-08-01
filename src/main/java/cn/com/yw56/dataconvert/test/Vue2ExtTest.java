@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 
 import cn.com.yw56.dataconvert.until.Vue2ExtUntil;
 
@@ -26,8 +27,8 @@ public class Vue2ExtTest {
     	JSONObject jObject = JSONObject.parseObject(line.toString());
     	JSONObject jsonObject = Vue2ExtUntil.vue2ExtData(jObject);
     	BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/test_ext1.json"))));
-    	writer.write(jsonObject.toString());
+    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/test_ext1dsds.json"))));
+    	writer.write(JSONObject.toJSONString(jsonObject,SerializerFeature.WriteMapNullValue) );
     	writer.flush();
     	writer.close();
 	}

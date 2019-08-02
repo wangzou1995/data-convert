@@ -13,7 +13,7 @@ import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 
 /**
- * 数据转换工具类
+ * EXT数据转换工具类
  * 
  * @author wangzou
  *
@@ -138,7 +138,7 @@ public class Ext2VueUntil {
 		// 判断是否有过滤字段
 		elementHaveTargetArray(temp, keys, "filter");
 		// 判断是否有自定义sql
-		elementHaveTargetObject(temp, keys, "filterSql");
+		elementHaveTargetObject(temp, keys, "filtersql");
 	}
 
 	/**
@@ -448,7 +448,6 @@ public class Ext2VueUntil {
 				case "tb_window_element_action_service":
 				case "tb_window_element_action_exesql":
 				case "tb_window_element_action_js":
-				case "tb_window_element_listener":
 				case "tb_window_element_action_export":
 				case "tb_window_element_action_import":
 				case "tb_window_element_action_updownload":
@@ -487,9 +486,6 @@ public class Ext2VueUntil {
 					break;
 				case "tb_window_element_action_js":
 					elementHaveTargetObject(popJsonObject, popKeySet, "customevent");
-					break;
-				case "tb_window_element_listener":
-					elementHaveTargetObject(popJsonObject, popKeySet, "jsscript");
 					break;
 				default:
 					break;

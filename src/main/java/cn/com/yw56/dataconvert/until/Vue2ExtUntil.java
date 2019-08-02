@@ -4,7 +4,11 @@ import java.util.Set;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-
+/**
+ * Vue数据转换工具类
+ * @author wangzou1995
+ *
+ */
 public class Vue2ExtUntil {
 
 	/**
@@ -258,14 +262,6 @@ public class Vue2ExtUntil {
 					if (jss != null) {
 						popJsonObject.put("customevent", jss.getString("js"));
 					}
-					break;
-				case "tb_window_element_listener":
-					JSONObject listeners = popJsonObject.getJSONObject("jsscript");
-					if (listeners != null && listeners.size() > 0) {
-						popJsonObject.put("jsscript", listeners.getString("js"));
-					}
-					break;
-				default:
 					break;
 				}
 			});

@@ -16,7 +16,7 @@ import cn.com.yw56.dataconvert.until.Ext2VueUntil;
 public class Ext2VueTest {
 	public static void main(String[] args) throws IOException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(
-    			new FileInputStream(new File("/Users/wangzou1995/Downloads/Design01_data.json"))));
+    			new FileInputStream(new File("/Users/wangzou1995/Downloads/Test_ext.json"))));
 		StringBuffer line = new StringBuffer();
 	    String result = "";
 		while ((result = reader.readLine()) != null) {
@@ -27,7 +27,7 @@ public class Ext2VueTest {
     	JSONObject jsonObject = Ext2VueUntil.ext2VueData(jObject);
     	
     	BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/Design01_data_vue.json"))));
+    			new FileOutputStream(new File("/Users/wangzou1995/Downloads/Test_vue.json"))));
     	writer.write(jsonObject.toString());
     	writer.flush();
     	writer.close();

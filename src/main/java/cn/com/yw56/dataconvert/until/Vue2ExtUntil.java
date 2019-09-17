@@ -4,8 +4,10 @@ import java.util.Set;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+
 /**
  * Vue数据转换工具类
+ * 
  * @author wangzou1995
  *
  */
@@ -48,7 +50,7 @@ public class Vue2ExtUntil {
 	private static void exchangeJSON2String(String[] strings, JSONObject object) {
 		for (int i = 0; i < strings.length; i++) {
 			Object o = object.get(strings[i]);
-			if (o != null && !"[]".equals(o.toString())) {
+			if (o != null && !"[]".equals(o.toString()) && !"{}".equals(o.toString())) {
 				object.put(strings[i], o.toString());
 			} else {
 				object.put(strings[i], null);
@@ -75,6 +77,7 @@ public class Vue2ExtUntil {
 				object.put("leaf", true);
 				break;
 			case "grid":
+			case "tree":
 				// 取出工具容器
 				JSONArray tools = object.getJSONArray("tb_tool_element");
 				if (tools != null && tools.size() > 0) {
@@ -82,13 +85,14 @@ public class Vue2ExtUntil {
 					tool.remove("name");
 					tool.remove("type");
 					tool.remove("icon");
-					//删除里面的
+					// 删除里面的
 					JSONArray toolElementsArray = tool.getJSONArray("tb_window_element");
-					for(int i = 0 , max = toolElementsArray.size(); i < max; i++) {
-						JSONObject toolElement = toolElementsArray.getJSONObject(i);
-						toolElement.remove("icon");
-						toolElement.remove("name");
-					}
+//					for (int i = 0, max = toolElementsArray.size(); i < max; i++) {
+//						JSONObject toolElement = toolElementsArray.getJSONObject(i);
+//						toolElement.remove("icon");
+//						toolElement.remove("name");
+//					}
+					elementRemoveNode(toolElementsArray);
 					resultArray.add(tool);
 					object.put("leaf", false);
 				} else {
@@ -122,6 +126,7 @@ public class Vue2ExtUntil {
 			// JSON转换 字符串
 			String[] temp = { "filter", "filtersql" };
 			exchangeJSON2String(temp, object);
+//			System.out.println(object.toJSONString());
 			JSONArray array = object.getJSONArray("tb_window_element");
 			if (array.size() > 0) {
 				elementRemoveNode(array);
@@ -145,7 +150,7 @@ public class Vue2ExtUntil {
 			// 表格元素删除
 			object.remove("parentid");
 			object.remove("parenttype");
-			
+
 			exchangeJSON2String(temps, object);
 			Set<String> keys = object.keySet();
 			keys.forEach(key -> {
@@ -181,11 +186,16 @@ public class Vue2ExtUntil {
 		JSONArray resultArray = new JSONArray();
 		if (jsonArray.size() > 0) {
 			jsonArray.forEach(row -> {
-				JSONArray colArray = ((JSONObject) row).getJSONArray("row");
-				if (colArray.size() > 0) {
-					colArray.forEach(col -> {
-						resultArray.add(((JSONObject) col).getJSONArray("col").getJSONObject(0));
-					});
+				JSONObject object = (JSONObject) row;
+				if (object.getString("type").equals("group")) {
+					resultArray.addAll(deleteRowContainer(object.getJSONArray("tb_window_element")));
+				} else {
+					JSONArray colArray = object.getJSONArray("row");
+					if (colArray.size() > 0) {
+						colArray.forEach(col -> {
+							resultArray.add(((JSONObject) col).getJSONArray("col").getJSONObject(0));
+						});
+					}
 				}
 			});
 		}

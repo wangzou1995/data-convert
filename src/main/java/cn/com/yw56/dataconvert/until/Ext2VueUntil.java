@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -20,7 +21,6 @@ import com.alibaba.fastjson.JSONObject;
  */
 public class Ext2VueUntil {
 	private static final ThreadLocal<JSONObject> threadLocal = new ThreadLocal<>();
-
 	/**
 	 * EXT转换VUE
 	 * 
@@ -31,7 +31,6 @@ public class Ext2VueUntil {
 		JSONObject resultObj = new JSONObject();
 		// 获取窗口配置
 		JSONArray windows = jsonObject.getJSONArray("tb_window");
-		// 填写窗口信息
 		resultObj = initWindow(windows.getJSONObject(0));
 		return resultObj;
 	}
@@ -45,10 +44,11 @@ public class Ext2VueUntil {
 	protected static JSONObject initWindow(JSONObject jsonObject) {
 		JSONObject result = new JSONObject();
 		Set<String> keys = jsonObject.keySet();
+		
+		System.out.println(jsonObject.toString());
 		for (String string : keys) {
 			if ("tb_window_layout".equals(string)) {
-				result.put(string, initContainerLaout(
-						resetSort(jsonObject.getJSONArray(string), "container")));
+				result.put(string, initContainerLaout(resetSort(jsonObject.getJSONArray(string), "container")));
 			} else {
 				result.put(string, jsonObject.get(string));
 			}
@@ -62,7 +62,7 @@ public class Ext2VueUntil {
 	 * 初始化容器配置
 	 * 
 	 * @param jsonArray
-	 * @return
+	 * @return7
 	 */
 	protected static JSONArray initContainerLaout(JSONArray jsonArray) {
 		JSONArray result = new JSONArray();
@@ -75,11 +75,12 @@ public class Ext2VueUntil {
 			// 获取容器类型
 			String containerType = sourceObj.getString("containertype");
 			if (containerType.equals("grid")) {
-				// 只要不是末及 就有工具栏			
+				// 只要不是末及 就有工具栏
 				temp.put("isShowTool", !sourceObj.getBooleanValue("leaf"));
 				temp.put("tb_tool_element", new JSONArray());
 				temp.put("toolPosition", "bottom");
 			}
+
 			// 获取容器id
 			int containerId = sourceObj.getIntValue("id");
 			// 存放type
@@ -128,8 +129,10 @@ public class Ext2VueUntil {
 			} else {
 				JSONArray jsonArray = jsonObject.getJSONArray(key);
 				if (jsonArray.size() > 0) {
-					temp.put(key, initElement(containerType,
-							resetSort(resetSort(jsonObject.getJSONArray(key), "row"), "colum"), containerId));
+					temp.put(key,
+							initElement(containerType,
+									resetSort(resetSort(jsonObject.getJSONArray(key), "row"), "colum"), containerId,
+									jsonObject));
 				} else {
 					temp.put(key, jsonArray);
 				}
@@ -144,42 +147,82 @@ public class Ext2VueUntil {
 	/**
 	 * 初始化元素信息
 	 * 
-	 * @param containerType
-	 * @param array
-	 * @param containerId
+	 * @param containerType 容器类型
+	 * @param array         元素集合
+	 * @param containerId   容器id
 	 * @return
 	 */
-	protected static JSONArray initElement(String containerType, JSONArray array, int containerId) {
+	protected static JSONArray initElement(String containerType, JSONArray array, int containerId,
+			JSONObject container) {
 		// 添加行元素
 		// 存放row 的关系
+		// 定义row
 		Map<Integer, Integer> rowLocationMap = new HashMap<>();
+		// 定义group
+		Map<Integer, JSONObject> groupMap = new HashMap<>();
+
 		JSONArray jsonArray = new JSONArray();
+		// 获取容器布局
+		String layouttype = container.getString("layouttype");
 		if (array.size() > 0) {
 			switch (containerType) {
 			case "searchform":
 			case "form":
 				// 获取元素
-
+				// 获取元素 创建 row , list, group
 				for (int i = 0; i < array.size(); i++) {
-
+					// 判断
 					JSONObject elementObj = (JSONObject) array.getJSONObject(i);
-					int temp = elementObj.getInteger("rowid");
+					int groupid = elementObj.getIntValue("groupid");
+					if (groupid == 0) {
+						int temp = elementObj.getInteger("rowid");
+						if (!rowLocationMap.containsKey(temp)) {
+							jsonArray.add(getRow(containerId,layouttype == null || layouttype.equals("vbox") ? "row" : "list"));
 
-					if (!rowLocationMap.containsKey(temp)) {
-						jsonArray.add(getRow(containerId));
+							rowLocationMap.put(temp, jsonArray.size() - 1);
+						}
+						JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
 
-						rowLocationMap.put(temp, jsonArray.size() - 1);
+						setCol(rowObj.getJSONArray("row"), elementObj);
+					} else {
+						if (groupMap.containsKey(groupid)) {
+							groupMap.get(groupid).getJSONArray("tb_window_element").add(elementObj);
+						} else {
+							JSONObject groupObject = createGroupContainer(container.getIntValue("id"),
+									findGroupName(container, groupid), groupid,findGroupLayout(container, groupid));
+							groupObject.getJSONArray("tb_window_element").add(elementObj);
+							groupMap.put(groupid, groupObject);
+
+						}
 					}
-					JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
-
-					setCol(rowObj.getJSONArray("row"), elementObj);
-
 				}
+				groupMap.forEach((key, value) -> {
+					Map<Integer, Integer> groupRowMap = new HashMap<>();
+					JSONArray groupElements = value.getJSONArray("tb_window_element");
+					String groupLayout = value.getString("layouttype");
+					JSONArray groupArray = new JSONArray();
+					groupElements.forEach(element -> {
+						int temp = ((JSONObject) element).getInteger("rowid");
+						if (!groupRowMap.containsKey(temp)) {
+							groupArray.add(getRow(containerId, groupLayout == null || groupLayout.equals("vbox") ? "row" : "list"));
+
+							groupRowMap.put(temp, groupArray.size() - 1);
+						}
+						JSONObject rowObj = groupArray.getJSONObject(groupRowMap.get(temp));
+						setCol(rowObj.getJSONArray("row"), (JSONObject) element);
+					});
+					value.put("tb_window_element", groupArray);
+					jsonArray.add(value);
+				});
+//				// 排序
+//				JSONArray sortArray = resortRLG(jsonArray);
+//				jsonArray.clear();
+//				jsonArray.addAll(sortArray);
 				break;
 			default:
 				for (Object obj : array) {
 					JSONObject elementObj = (JSONObject) obj;
-					if (containerType.equals("grid")) {
+					if (containerType.equals("grid") || containerType.equals("tree")) {
 						elementObj.put("parenttype", containerType);
 						elementObj.put("parentid", containerId);
 					}
@@ -193,17 +236,64 @@ public class Ext2VueUntil {
 		return jsonArray;
 	}
 
+	private static JSONArray resortRLG(JSONArray jsonArray) {
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		Map<Integer, JSONObject> rlgMap = new TreeMap(new Comparator<Integer>() {
+			@Override
+			public int compare(Integer o1, Integer o2) {
+				return o1.compareTo(o2);
+			}
+		});
+		jsonArray.forEach(e -> {
+			JSONObject element = (JSONObject) e;
+			String type = element.getString("type");
+			if (type.equals("row")) {
+				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid"), element);
+			} else if (type.equals("list")) {
+				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("colunmid"), element);
+			} else {
+				rlgMap.put(element.getJSONArray("tb_window_element").getJSONObject(0).getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid"),
+						element
+						);
+			}
+		});
+		JSONArray result = new JSONArray();
+		rlgMap.forEach((key, value)-> {
+			result.add(value);
+		});
+		return result;
+	}
+
+	private static String findGroupName(JSONObject container, int groupid) {
+		JSONArray array = container.getJSONArray("tb_window_layout_field_group");
+		for (int i = 0; i < array.size(); i++) {
+			if (array.getJSONObject(i).getIntValue("id") == groupid) {
+				return array.getJSONObject(i).getString("grouptitle");
+			}
+		}
+		return null;
+	}
+	private static String findGroupLayout(JSONObject container, int groupid) {
+		JSONArray array = container.getJSONArray("tb_window_layout_field_group");
+		for (int i = 0; i < array.size(); i++) {
+			if (array.getJSONObject(i).getIntValue("id") == groupid) {
+				return array.getJSONObject(i).getString("layouttype");
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * 获取行元素
 	 * 
 	 * @param parentid
 	 * @return
 	 */
-	protected static JSONObject getRow(int parentid) {
+	protected static JSONObject getRow(int parentid, String type) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("row", new JSONArray());
 		jsonObject.put("name", "行元素");
-		jsonObject.put("type", "row");
+		jsonObject.put("type", type);
 		jsonObject.put("id", IdSequenceUtils.getId());
 		jsonObject.put("icon", "iconfont iconrow");
 		jsonObject.put("parentid", parentid);
@@ -317,6 +407,8 @@ public class Ext2VueUntil {
 		Collections.sort(list, new Comparator<JSONObject>() {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
+				System.out.println(o1.toString());
+				System.out.println(type);
 				int a = o1.getInteger(
 						type == "container" || type == "containers" ? "orderid" : type == "row" ? "rowid" : "columnid");
 				int b = o2.getInteger(
@@ -346,12 +438,15 @@ public class Ext2VueUntil {
 			public int compare(JSONObject o1, JSONObject o2) {
 				int a = o1.getInteger("parentid");
 				int b = o2.getInteger("parentid");
-				if (a > b) {
+				if (a < -1) {
+					return 1;
+				} else if (a > b) {
 					return 1;
 				} else if (a == b) {
 					return 0;
-				} else
+				} else {
 					return -1;
+				}
 			}
 		});
 		// 将toolbar 放置最后
@@ -399,7 +494,7 @@ public class Ext2VueUntil {
 						JSONObject inputObject = (JSONObject) obj;
 						elementHaveTargetObject(inputObject, inputObject.keySet(), "switchfilter");
 					});
-				}	
+				}
 				break;
 			case "visible":
 			case "elementstatus":
@@ -423,9 +518,14 @@ public class Ext2VueUntil {
 		if (selectFieldArray != null && selectFieldArray.size() > 0) {
 			selectFieldArray.forEach(obj -> {
 				JSONObject jsonObject = (JSONObject) obj;
-				jsonObject.put(elementNode, JSONObject.parse(jsonObject.getString(elementNode)));
+				try {
+					Object parseObject = JSONObject.parse(jsonObject.getString(elementNode));
+					jsonObject.put(elementNode, parseObject);
+				} catch (Exception e) {
+
+				}
 			});
-			
+
 		}
 	}
 
@@ -440,7 +540,7 @@ public class Ext2VueUntil {
 			// 判断是否有export事件
 			Set<String> keys = jsonObject.keySet();
 			if (!keys.contains("tb_window_element_action_export")) {
-			jsonObject.put("tb_window_element_action_export", new JSONArray());	
+				jsonObject.put("tb_window_element_action_export", new JSONArray());
 			}
 			keys.forEach(key -> {
 				switch (key) {
@@ -534,18 +634,54 @@ public class Ext2VueUntil {
 		if (!keys.contains(targetKey)) {
 			object.put(targetKey, new JSONObject());
 		} else {
-			
+
 			String tempString = object.getString(targetKey);
 			try {
 				JSONObject tempObj = JSONObject.parseObject(tempString);
 				object.put(targetKey, tempObj == null ? new JSONObject() : tempObj);
 			} catch (JSONException e) {
-		
+
 				JSONObject createJson = new JSONObject();
 				createJson.put("type", "js");
 				createJson.put("js", tempString);
 				object.put(targetKey, createJson);
 			}
 		}
+	}
+
+	/**
+	 * 创建分组容器
+	 * 
+	 * @param parentid
+	 * @param groupName
+	 * @return
+	 */
+	protected static JSONObject createGroupContainer(int parentid, String groupName, int groupid, String layouttype) {
+		JSONObject result = new JSONObject();
+		result.put("type", "group");
+		result.put("containertype", "group");
+		result.put("containerdesc", groupName);
+		result.put("parentid", parentid);
+		result.put("id", groupid);
+		result.put("tb_window_element", new JSONArray());
+		result.put("orderid", 99999999);
+		result.put("layouttype", layouttype);
+		return result;
+	}
+
+	/**
+	 * 获取元素index
+	 * 
+	 * @param elements 元素集合
+	 * @param id       元素id
+	 * @return 元素index
+	 */
+	protected static int getELementsIndex(JSONArray elements, int id) {
+		for (int j = 0; j < elements.size(); j++) {
+			if (elements.getJSONObject(j).getIntValue("id") == id) {
+				return j;
+			}
+		}
+		return -1;
 	}
 }

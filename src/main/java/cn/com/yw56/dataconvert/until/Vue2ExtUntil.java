@@ -12,6 +12,8 @@ import com.alibaba.fastjson.JSONObject;
  *
  */
 public class Vue2ExtUntil {
+	private static final ThreadLocal<JSONArray> messageThreadLocal = new ThreadLocal<>();
+	private static String MESSAGE_NODE = "tb_message_template_trans";
 
 	/**
 	 * vue数据转换ext数据
@@ -21,6 +23,8 @@ public class Vue2ExtUntil {
 	public static JSONObject vue2ExtData(JSONObject source) {
 		JSONObject window = new JSONObject();
 		JSONObject sourceObject = source.getJSONObject("tb_window");
+		// 初始化messageThreadLocal
+		 messageThreadLocal.set(source.getJSONArray(MESSAGE_NODE));	
 		Set<String> keys = sourceObject.keySet();
 		keys.forEach(key -> {
 			if (!key.equals("tb_window_layout")) {
@@ -38,6 +42,8 @@ public class Vue2ExtUntil {
 		JSONObject resultObj = new JSONObject();
 		resultObj.put("tb_window", jsonArray);
 		resultObj.put("removeObjs", source.getJSONArray("removeObjs"));
+		System.out.println( messageThreadLocal.get().toJSONString());
+		resultObj.put(MESSAGE_NODE, messageThreadLocal.get());
 		return resultObj;
 	}
 
@@ -260,6 +266,14 @@ public class Vue2ExtUntil {
 
 					break;
 				case "tb_window_element_action_service":
+					// 转移到窗口属性（报文转换配置）
+					JSONObject messageTran = popJsonObject.getJSONObject(MESSAGE_NODE);
+					if (messageTran != null) {
+						//  查找存放
+						messageThreadLocal.get().add(messageTran);
+						popJsonObject.remove(MESSAGE_NODE);
+						
+					}			
 					String[] services = { "urltitle", "script", "switchfilter", "urlparams", "headers" };
 					exchangeJSON2String(services, popJsonObject);
 					break;

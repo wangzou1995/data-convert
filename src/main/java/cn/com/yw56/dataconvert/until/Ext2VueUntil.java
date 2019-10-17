@@ -21,6 +21,10 @@ import com.alibaba.fastjson.JSONObject;
  */
 public class Ext2VueUntil {
 	private static final ThreadLocal<JSONObject> threadLocal = new ThreadLocal<>();
+	private static final ThreadLocal<JSONArray> messageThreadLocal = new ThreadLocal<>();
+	private static String MESSAGE_STR = "messagetransid";
+	private static String MESSAGE_NODE = "tb_message_template_trans";
+
 	/**
 	 * EXT转换VUE
 	 * 
@@ -31,7 +35,9 @@ public class Ext2VueUntil {
 		JSONObject resultObj = new JSONObject();
 		// 获取窗口配置
 		JSONArray windows = jsonObject.getJSONArray("tb_window");
-		resultObj = initWindow(windows.getJSONObject(0));
+		messageThreadLocal.set(jsonObject.getJSONArray(MESSAGE_NODE));
+		resultObj.put("tb_window", initWindow(windows.getJSONObject(0)));
+		resultObj.put("tb_message_template_trans" ,JSONArray.parseArray( jsonObject.getJSONArray(MESSAGE_NODE).toJSONString()));
 		return resultObj;
 	}
 
@@ -44,8 +50,6 @@ public class Ext2VueUntil {
 	protected static JSONObject initWindow(JSONObject jsonObject) {
 		JSONObject result = new JSONObject();
 		Set<String> keys = jsonObject.keySet();
-		
-		System.out.println(jsonObject.toString());
 		for (String string : keys) {
 			if ("tb_window_layout".equals(string)) {
 				result.put(string, initContainerLaout(resetSort(jsonObject.getJSONArray(string), "container")));
@@ -160,7 +164,6 @@ public class Ext2VueUntil {
 		Map<Integer, Integer> rowLocationMap = new HashMap<>();
 		// 定义group
 		Map<Integer, JSONObject> groupMap = new HashMap<>();
-
 		JSONArray jsonArray = new JSONArray();
 		// 获取容器布局
 		String layouttype = container.getString("layouttype");
@@ -177,19 +180,18 @@ public class Ext2VueUntil {
 					if (groupid == 0) {
 						int temp = elementObj.getInteger("rowid");
 						if (!rowLocationMap.containsKey(temp)) {
-							jsonArray.add(getRow(containerId,layouttype == null || layouttype.equals("vbox") ? "row" : "list"));
-
+							jsonArray.add(getRow(containerId,
+									layouttype == null || layouttype.equals("hbox") ? "row" : "list"));
 							rowLocationMap.put(temp, jsonArray.size() - 1);
 						}
 						JSONObject rowObj = jsonArray.getJSONObject(rowLocationMap.get(temp));
-
 						setCol(rowObj.getJSONArray("row"), elementObj);
 					} else {
 						if (groupMap.containsKey(groupid)) {
 							groupMap.get(groupid).getJSONArray("tb_window_element").add(elementObj);
 						} else {
 							JSONObject groupObject = createGroupContainer(container.getIntValue("id"),
-									findGroupName(container, groupid), groupid,findGroupLayout(container, groupid));
+									findGroupName(container, groupid), groupid, findGroupLayout(container, groupid));
 							groupObject.getJSONArray("tb_window_element").add(elementObj);
 							groupMap.put(groupid, groupObject);
 
@@ -204,13 +206,15 @@ public class Ext2VueUntil {
 					groupElements.forEach(element -> {
 						int temp = ((JSONObject) element).getInteger("rowid");
 						if (!groupRowMap.containsKey(temp)) {
-							groupArray.add(getRow(containerId, groupLayout == null || groupLayout.equals("vbox") ? "row" : "list"));
-
+							groupArray.add(getRow(containerId,
+									groupLayout == null || groupLayout.equals("hbox") ? "row" : "list"));
 							groupRowMap.put(temp, groupArray.size() - 1);
 						}
 						JSONObject rowObj = groupArray.getJSONObject(groupRowMap.get(temp));
 						setCol(rowObj.getJSONArray("row"), (JSONObject) element);
 					});
+					// 排序
+
 					value.put("tb_window_element", groupArray);
 					jsonArray.add(value);
 				});
@@ -233,9 +237,30 @@ public class Ext2VueUntil {
 		} else {
 
 		}
+		// 排序
+		jsonArray.sort(new Comparator<Object>() {
+			@Override
+			public int compare(Object o1, Object o2) {
+				JSONObject jo1 = (JSONObject) o1;
+				JSONObject jo2 = (JSONObject) o2;
+				try {
+					JSONArray ja1 = jo1.getJSONArray("row");
+					JSONArray ja2 = jo2.getJSONArray("row");
+					if (ja1.getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid") > ja2
+							.getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid")) {
+						return 1;
+					} else {
+						return -1;
+					}
+				} catch (Exception e) {
+					return 0;
+				}
+			}
+		});
 		return jsonArray;
 	}
 
+	@SuppressWarnings("unused")
 	private static JSONArray resortRLG(JSONArray jsonArray) {
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		Map<Integer, JSONObject> rlgMap = new TreeMap(new Comparator<Integer>() {
@@ -248,17 +273,18 @@ public class Ext2VueUntil {
 			JSONObject element = (JSONObject) e;
 			String type = element.getString("type");
 			if (type.equals("row")) {
-				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid"), element);
+				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0)
+						.getIntValue("rowid"), element);
 			} else if (type.equals("list")) {
-				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("colunmid"), element);
+				rlgMap.put(element.getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0)
+						.getIntValue("colunmid"), element);
 			} else {
-				rlgMap.put(element.getJSONArray("tb_window_element").getJSONObject(0).getJSONArray("row").getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid"),
-						element
-						);
+				rlgMap.put(element.getJSONArray("tb_window_element").getJSONObject(0).getJSONArray("row")
+						.getJSONObject(0).getJSONArray("col").getJSONObject(0).getIntValue("rowid"), element);
 			}
 		});
 		JSONArray result = new JSONArray();
-		rlgMap.forEach((key, value)-> {
+		rlgMap.forEach((key, value) -> {
 			result.add(value);
 		});
 		return result;
@@ -273,6 +299,7 @@ public class Ext2VueUntil {
 		}
 		return null;
 	}
+
 	private static String findGroupLayout(JSONObject container, int groupid) {
 		JSONArray array = container.getJSONArray("tb_window_layout_field_group");
 		for (int i = 0; i < array.size(); i++) {
@@ -407,8 +434,6 @@ public class Ext2VueUntil {
 		Collections.sort(list, new Comparator<JSONObject>() {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
-				System.out.println(o1.toString());
-				System.out.println(type);
 				int a = o1.getInteger(
 						type == "container" || type == "containers" ? "orderid" : type == "row" ? "rowid" : "columnid");
 				int b = o2.getInteger(
@@ -570,13 +595,19 @@ public class Ext2VueUntil {
 				JSONObject popJsonObject = (JSONObject) element;
 				// 判断有没有filter
 				Set<String> popKeySet = popJsonObject.keySet();
-
 				switch (key) {
 				case "tb_window_element_action_popwin":
 					elementHaveTargetArray(popJsonObject, popKeySet, "filter");
 					elementHaveTargetArray(popJsonObject, popKeySet, "script");
 					break;
 				case "tb_window_element_action_service":
+					// 多做一件事情 添加messagetransid对应的数据
+						int messageTransId = popJsonObject.getIntValue(MESSAGE_STR);
+						if (messageTransId != 0) {
+							//  查找存放
+							popJsonObject.put(MESSAGE_NODE, getMessageObjById(messageTransId));
+						}
+					
 					elementHaveTargetArray(popJsonObject, popKeySet, "script");
 					elementHaveTargetArray(popJsonObject, popKeySet, "switchfilter");
 					break;
@@ -683,5 +714,21 @@ public class Ext2VueUntil {
 			}
 		}
 		return -1;
+	}
+	/**
+	 * 通过id查找报文转换配置
+	 * @param id 报文转换id
+	 * @return 报文转换对象
+	 */
+	protected static JSONObject getMessageObjById (int id) {
+		JSONArray messageTransConfigsArray = messageThreadLocal.get();
+		for (int i = 0; i < messageTransConfigsArray.size(); i++) {
+			JSONObject messageObject = messageTransConfigsArray.getJSONObject(i);
+			if (messageObject.getIntValue("id") == id) {
+				messageTransConfigsArray.remove(i);
+				return messageObject;
+			}
+		}
+		return null;
 	}
 }
